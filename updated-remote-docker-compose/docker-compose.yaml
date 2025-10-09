@@ -1,0 +1,89 @@
+# docker-compose.yaml
+# Airflow setup with CeleryExecutor, Postgres, Redis, and secret key for logs
+
+x-airflow-common:
+  &airflow-common
+  environment:
+    &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+    AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__API__AUTH_BACKEND: 'airflow.api.auth.backend.basic_auth'
+    AIRFLOW__WEBSERVER__SECRET_KEY: 'd2f4a7b1e3c9f5d6a1b2c3d4e5f67890123456789abcdef0123456789abcdef'
+
+    # Kaggle credentials
+    KAGGLE_USERNAME: abubakerz
+    KAGGLE_KEY: e0615e1da73c3a361ea22958
+
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./data:/opt/airflow/data
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    - postgres
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+
+  redis:
+    image: redis:latest
+
+  webserver:
+    image: abubakerzzz/airflow-webserver:latest
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    depends_on:
+      - scheduler
+    environment:
+      <<: *airflow-common-env
+
+  scheduler:
+    image: abubakerzzz/airflow-scheduler:latest
+    <<: *airflow-common
+    command: scheduler
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      <<: *airflow-common-env
+
+  worker:
+    image: abubakerzzz/airflow-worker:latest
+    <<: *airflow-common
+    command: celery worker
+    depends_on:
+      - scheduler
+      - redis
+      - postgres
+    environment:
+      <<: *airflow-common-env
+
+  airflow-init:
+    image: abubakerzzz/airflow-init:latest
+    <<: *airflow-common
+    command: bash -c "airflow db init && airflow users create \
+        --username airflow \
+        --firstname Admin \
+        --lastname User \
+        --role Admin \
+        --email abubakerajazz@gmail.com \
+        --password airflow"
+    depends_on:
+      - postgres
+    environment:
+      <<: *airflow-common-env
+
+volumes:
+  postgres-db-volume:
