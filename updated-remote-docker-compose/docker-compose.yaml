@@ -39,7 +39,7 @@ services:
     image: redis:latest
 
   webserver:
-    image: abubakerzzz/airflow-webserver:latest
+    image: aubakerzzz/airflow-webserver:latest
     <<: *airflow-common
     command: webserver
     ports:
@@ -50,7 +50,7 @@ services:
       <<: *airflow-common-env
 
   scheduler:
-    image: abubakerzzz/airflow-scheduler:latest
+    image: aubakerzzz/airflow-scheduler:latest
     <<: *airflow-common
     command: scheduler
     depends_on:
@@ -60,7 +60,7 @@ services:
       <<: *airflow-common-env
 
   worker:
-    image: abubakerzzz/airflow-worker:latest
+    image: aubakerzzz/airflow-worker:latest
     <<: *airflow-common
     command: celery worker
     depends_on:
@@ -71,7 +71,7 @@ services:
       <<: *airflow-common-env
 
   airflow-init:
-    image: abubakerzzz/airflow-init:latest
+    image: aubakerzzz/airflow-init:latest
     <<: *airflow-common
     command: bash -c "airflow db init && airflow users create \
         --username airflow \
